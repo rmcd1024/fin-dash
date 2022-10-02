@@ -62,7 +62,7 @@ if (getdata) {
 } else {
     load(datafile)
 }
-
+filetime <- file.mtime(datafile)
 ```
 
 ```{r functions}
