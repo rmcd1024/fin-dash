@@ -20,7 +20,7 @@ fn <- 'dashboard_data.Rdata'
 datafile <- paste0(filepath,fn)
 
 ## DATA UPDATES
-## Can set a date check on data file to determine if re-read is needed
+## Can set an age check on data file to determine if re-read is needed
 updateinterval <- 6.9 ## days after which the data will be updated
 if (file.exists(datafile)) {
     filetime <- file.mtime(datafile)
