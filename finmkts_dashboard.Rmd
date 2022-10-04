@@ -43,7 +43,7 @@ options(scipen = 100) ## no scientific notation
 
 ```{r getdata}
 library(tidyquant)
-stocks <- c('^GSPC', '^VIX', 'QQQ', 'BTC-USD')
+stocks <- c('^GSPC', '^VIX', '^SP600', 'BTC-USD')
 currs <- c('DEXUSEU', 'DEXUSUK', 'DEXJPUS')
 treas <- c('1-year' = 'DGS1', '10-year' = 'DGS10', '5-year' = 'DGS5',
            '3-month' = 'DTB3')
@@ -52,6 +52,7 @@ if (getdata) {
     x <- tq_get(stocks, from = startdate) %>%
         select(symbol, date, price = adjusted) %>%
         mutate(symbol = gsub('\\^GSPC', 'SP500', symbol),
+               symbol = gsub('\\^SP600', 'SP600', symbol),
                symbol = gsub('\\^VIX', 'VIX',  symbol))
     xex <- tq_get(currs, from = startdate, get = 'economic.data') %>%
         mutate(symbol = gsub('DEX', '', symbol))
@@ -108,7 +109,7 @@ Date and time of last data update: `r format(filetime, "%A %B %d %Y %H:%M %Z")`
 ```{r plotstocks, eval=TRUE}
 
 ## Compute table with min, max, std dev, last week, last month, sample
-tickerorder <- c('SP500', 'QQQ', 'VIX', 'BTC-USD')
+tickerorder <- c('SP500', 'SP600', 'VIX', 'BTC-USD')
 x$symbol <- factor(x$symbol, levels = tickerorder)
 p = ggplot(x, aes(x = date, y = price)) +
     geom_line() +
@@ -121,6 +122,8 @@ p = ggplot(x, aes(x = date, y = price)) +
 ggplotly(p, tooltip = c('date', 'price'))
 kable(sumtbl(x, symorder = tickerorder))
 ```
+Note: The S&P 600 index is S&P's "small-cap" index, containing firms
+with market capitalizations roughly between $1 billion and $4 billion.
 
 ## Foreign Exchange
 
