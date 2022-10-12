@@ -14,7 +14,8 @@ library(plotly)
 
 theme_set(theme_bw())
 
-
+getdatanomatterwhat <- TRUE
+## getdatanomatterwhat <- FALSE
 filepath <- 'data/'
 fn <- 'dashboard_data.Rdata'
 datafile <- paste0(filepath,fn)
@@ -30,6 +31,9 @@ if (file.exists(datafile)) {
 } else {
     getdata <- TRUE
 }
+
+if (getdatanomatterwhat) getdata <- TRUE  ## ignore updateinterval
+
 ## DATA CHARACTERISTICS
 startdate <- '2020-01-01'
 
