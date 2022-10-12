@@ -195,9 +195,10 @@ base trading decisions on this data, you should
 ### Purpose
 
 This is a simple document. I wrote it to provide a focal point for
-   class discussions, focusing on information that I hope will be salient
-   for students. Comments are welcome. It is licensed under the MIT
-   License and [available on Github](https://github.com/rmcd1024/fin-dash)
+   class discussions, focusing on information that I hope will be
+   salient for students. Comments are welcome. It is licensed under
+   the MIT License and [the code is available on
+   Github](https://github.com/rmcd1024/fin-dash)
    
 -- [Robert McDonald](https://www.kellogg.northwestern.edu/faculty/directory/mcdonald_robert.aspx), [Kellogg
 School of Management](https://kellogg.northwestern.edu), Northwestern University
