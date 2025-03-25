@@ -1,0 +1,210 @@
+---
+title: Financial markets dashboard
+##author: |
+##  | Professor Robert McDonald
+##  | Kellogg School, Northwestern University
+##date: "`r format(Sys.time(), '%A, %B %d, %Y %H:%M %Z')`"
+date: now
+output: html
+---
+
+
+```{r, echo=FALSE, message=FALSE}
+library(tidyverse)
+library(plotly)
+
+theme_set(theme_bw())
+
+getdatanomatterwhat <- TRUE
+getdatanomatterwhat <- FALSE
+filepath <- 'data/'
+fn <- 'dashboard_data.Rdata'
+datafile <- paste0(filepath,fn)
+
+## DATA UPDATES
+## Can set an age check on data file to determine if re-read is needed
+updateinterval <- 1.9 ## days after which the data will be updated
+if (file.exists(datafile)) {
+    filetime <- file.mtime(datafile)
+    time_since_update <-
+        (as.integer(Sys.time()) - as.integer(filetime))/(3600*24)
+    getdata <- ifelse(time_since_update < updateinterval, FALSE, TRUE)
+} else {
+    getdata <- TRUE
+}
+
+if (getdatanomatterwhat) getdata <- TRUE  ## ignore updateinterval
+
+## DATA CHARACTERISTICS
+startdate <- '2023-01-01'
+
+library(knitr)
+opts_chunk$set(echo = FALSE
+              ,message = FALSE
+              ,warning = FALSE
+               )
+options(scipen = 100) ## no scientific notation
+```
+
+```{r getdata}
+library(tidyquant)
+stocks <- c('^GSPC', '^VIX', '^SP600', 'BTC-USD')
+currs <- c('DEXUSEU', 'DEXUSUK', 'DEXJPUS')
+treas <- c('1-year' = 'DGS1', '10-year' = 'DGS10', '5-year' = 'DGS5',
+           '3-month' = 'DTB3')
+
+if (getdata) {
+    x <- tq_get(stocks, from = startdate) %>%
+        select(symbol, date, price = adjusted) %>%
+        mutate(symbol = gsub('\\^GSPC', 'SP500', symbol),
+               symbol = gsub('\\^SP600', 'SP600', symbol),
+               symbol = gsub('\\^VIX', 'VIX',  symbol))
+    xex <- tq_get(currs, from = startdate, get = 'economic.data') %>%
+        mutate(symbol = gsub('DEX', '', symbol))
+    rates <- tq_get(unname(treas), from = startdate, get = 'economic.data' ) %>%
+        rename(rate = price)
+    for (i in names(treas)) rates$symbol <- gsub(paste0('^', treas[i], '$'), i,  rates$symbol)
+    save(x, xex, rates, file = datafile)
+} else {
+    load(datafile)
+}
+filetime <- file.mtime(datafile)
+```
+
+```{r functions}
+sumtbl_old <- function(df, volret = TRUE, symorder = NULL) {
+    if (is.null(symorder)) symorder <- unique(df$symbol)
+    names(df)[3] <- 'price'
+    out <- list()
+    for (i in symorder) {
+        out[[i]] <- filter(df, symbol == i) %>%
+            na.omit() %>% 
+            summarize(Symbol = i,
+                      Min = min(price, na.rm = TRUE),
+                      Max = max(price, na.rm = TRUE),
+                      Initial = first(price),
+                      Last =  last(price))
+    }
+    return(do.call(rbind, out))
+}
+
+sumtbl <- function(df, volret = TRUE, symorder = NULL) {
+    names(df)[3] <- 'price'
+    ##df <- x
+    out <- df %>% 
+        na.omit() %>%
+        group_by(symbol) %>% 
+        summarize(Min = min(price, na.rm = TRUE),
+                  Max = max(price, na.rm = TRUE),
+                  Initial = first(price),
+                  Last =  last(price)) 
+    return(out)
+}
+
+
+```
+
+# Select market data {.tabset .tabset-pills}
+
+Date and time of last data update: `r format(filetime, "%A %B %d %Y %H:%M %Z")`
+
+::: {.panel-tabset}
+
+## Stock market and bitcoin
+
+
+```{r plotstocks, eval=TRUE}
+
+## Compute table with min, max, std dev, last week, last month, sample
+tickerorder <- c('SP500', 'SP600', 'VIX', 'BTC-USD')
+x$symbol <- factor(x$symbol, levels = tickerorder)
+p = ggplot(x, aes(x = date, y = price)) +
+    geom_line() +
+    scale_y_log10() + #limits = c(10, NA)) +
+    facet_wrap(~ symbol, scales = 'free_y', ncol = 2
+               ) +
+    labs(caption = "Source: Yahoo, via R's tidyquant package") + 
+    ggtitle('Stock and crypto market data, log scale')
+
+ggplotly(p, tooltip = c('date', 'price'))
+kable(sumtbl(x, symorder = tickerorder))
+```
+Note: The S&P 600 index is S&P's "small-cap" index, containing firms
+with market capitalizations roughly between $1 billion and $4 billion.
+
+## Foreign Exchange
+
+```{r plotfx}
+p <- ggplot(xex, aes(x = date, y = price)) +
+    geom_line() +
+    scale_y_log10() +
+    facet_wrap(~ symbol, scales = 'free_y', ncol = 1) +
+    ggtitle('Exchange rates, log scale' )
+
+
+ggplotly(p, tooltip = c('date', 'price'))
+kable(sumtbl(xex))
+```
+
+
+## Interest rates
+
+```{r plotrates, results='asis'}
+rateorder <- c('3-month','1-year','5-year','10-year')
+rates$symbol <- factor(rates$symbol, levels = rateorder)
+p <- ggplot(rates, aes(x = date, y = rate)) +
+    geom_line() +
+    facet_wrap(~ symbol, ncol = 2) +
+    ggtitle('Treasury rates, various maturities')
+
+ggplotly(p, tooltip = c('date', 'rate'))
+kable(sumtbl(rates, symorder = rateorder))
+```
+
+
+## Data sources and disclaimer
+
+
+### Data sources
+
+All data was retrieved using R's [tidyquant
+package](https://cran.r-project.org/package=tidyquant). The
+underlying data sources were:
+
+* **Stock data** [Yahoo Finance](https://finance.yahoo.com/) 
+  * Symbols: `r stocks`
+
+* **Exchange rate data** [St Louis Federal Reserve FRED data
+  repository](https://fred.stlouisfed.org)
+  * Symbols: `r currs`
+
+* **Interest rate data** [St Louis Federal Reserve FRED data
+  repository](https://fred.stlouisfed.org)
+  * Symbols: `r unname(treas)`
+  
+  
+### Disclaimer
+
+This site was created for **educational purposes**. There is **no warranty**
+as to the accuracy or timeliness of the data. If you're tempted to
+base trading decisions on this data, you should 
+
+1. Take several slow, deep breaths
+1. Do your own independent research
+2. Take an investments course, or at least read an investments book ---
+   [Bodie, Kane, and
+   Marcus](https://www.mheducation.com/highered/product/investments-bodie-kane/M9781260013832.html)
+   is excellent
+
+### Purpose
+
+This is a simple document. I wrote it to provide a focal point for
+   class discussions, focusing on information that I hope will be
+   salient for students. Comments are welcome. It is licensed under
+   the MIT License and [the code is available on
+   Github](https://github.com/rmcd1024/fin-dash)
+   
+-- [Robert McDonald](https://www.kellogg.northwestern.edu/faculty/directory/mcdonald_robert.aspx), [Kellogg
+School of Management](https://kellogg.northwestern.edu), Northwestern University
+
+:::
