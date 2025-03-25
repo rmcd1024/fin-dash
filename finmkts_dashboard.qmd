@@ -5,7 +5,9 @@ title: Financial markets dashboard
 ##  | Kellogg School, Northwestern University
 ##date: "`r format(Sys.time(), '%A, %B %d, %Y %H:%M %Z')`"
 date: now
-output: html
+format: 
+    html:
+        embed-resources: true
 ---
 
 
