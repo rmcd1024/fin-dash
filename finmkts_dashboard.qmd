@@ -133,6 +133,7 @@ kable(sumtbl(x, symorder = tickerorder))
 ```
 Note: The S&P 600 index is S&P's "small-cap" index, containing firms
 with market capitalizations roughly between $1 billion and $4 billion.
+The S&P 400 is the "mid-cap" index, and the S&P 1000 is the combination of the two.
 
 ## Foreign Exchange
 
