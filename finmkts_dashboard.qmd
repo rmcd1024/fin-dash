@@ -25,7 +25,7 @@ datafile <- paste0(filepath,fn)
 
 ## DATA UPDATES
 ## Can set an age check on data file to determine if re-read is needed
-updateinterval <- 1.9 ## days after which the data will be updated
+updateinterval <- 0.9 ## days after which the data will be updated
 if (file.exists(datafile)) {
     filetime <- file.mtime(datafile)
     time_since_update <-
