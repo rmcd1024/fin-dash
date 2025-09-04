@@ -14,6 +14,7 @@ format:
 ```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(plotly)
+library(fredr)
 
 theme_set(theme_bw())
 
@@ -52,8 +53,7 @@ options(scipen = 100) ## no scientific notation
 library(tidyquant)
 stocks <- c('^GSPC', '^VIX', '^SP600', 'BTC-USD')
 currs <- c('DEXUSEU', 'DEXUSUK', 'DEXJPUS')
-treas <- c('1-year' = 'DGS1', '10-year' = 'DGS10', '5-year' = 'DGS5',
-           '3-month' = 'DTB3')
+treas <- c('3-month' = 'DGS3MO', '1-year' = 'DGS1', '10-year' = 'DGS10', '30-year' = 'DGS30')
 
 if (getdata) {
     x <- tq_get(stocks, from = startdate) %>%
@@ -63,9 +63,11 @@ if (getdata) {
                symbol = gsub('\\^VIX', 'VIX',  symbol))
     xex <- tq_get(currs, from = startdate, get = 'economic.data') %>%
         mutate(symbol = gsub('DEX', '', symbol))
-    rates <- tq_get(unname(treas), from = startdate, get = 'economic.data' ) %>%
-        rename(rate = price)
-    for (i in names(treas)) rates$symbol <- gsub(paste0('^', treas[i], '$'), i,  rates$symbol)
+    xex <- map_df(currs,  \(.x) fredr(.x,  observation_start = as.Date(startdate)))[, 1:3] %>%
+        mutate(series_id = gsub('DEX', '', series_id) )
+    rates <- map_df(treas, \(.x) fredr(unname(.x), observation_start = as.Date(startdate))[,1:3])
+
+#    for (i in names(treas)) rates$series_id <- gsub(paste0('^', treas[i], '$'), i,  rates$series_id)
     save(x, xex, rates, file = datafile)
 } else {
     load(datafile)
@@ -92,6 +94,7 @@ sumtbl_old <- function(df, volret = TRUE, symorder = NULL) {
 
 sumtbl <- function(df, volret = TRUE, symorder = NULL) {
     names(df)[3] <- 'price'
+    names(df)[2] <- 'symbol'
     ##df <- x
     out <- df %>% 
         na.omit() %>%
@@ -118,6 +121,7 @@ Date and time of last data update: `r format(filetime, "%A %B %d %Y %H:%M %Z")`
 ```{r plotstocks, eval=TRUE}
 
 ## Compute table with min, max, std dev, last week, last month, sample
+x <- cbind(x[, 2],  x[, 1], x[, 3])
 tickerorder <- c('SP500', 'SP600', 'VIX', 'BTC-USD')
 x$symbol <- factor(x$symbol, levels = tickerorder)
 p = ggplot(x, aes(x = date, y = price)) +
@@ -137,13 +141,15 @@ The S&P 400 is the "mid-cap" index, and the S&P 1000 is the combination of the t
 
 ## Foreign Exchange
 
+
 ```{r plotfx}
+xex$series_id <- as.factor(xex$series_id)
+xex <- rename(xex, price = value)
 p <- ggplot(xex, aes(x = date, y = price)) +
     geom_line() +
     scale_y_log10() +
-    facet_wrap(~ symbol, scales = 'free_y', ncol = 1) +
+    facet_wrap(~ series_id, scales = 'free_y', ncol = 1) +
     ggtitle('Exchange rates, log scale' )
-
 
 ggplotly(p, tooltip = c('date', 'price'))
 kable(sumtbl(xex))
@@ -153,11 +159,11 @@ kable(sumtbl(xex))
 ## Interest rates
 
 ```{r plotrates, results='asis'}
-rateorder <- c('3-month','1-year','5-year','10-year')
-rates$symbol <- factor(rates$symbol, levels = rateorder)
-p <- ggplot(rates, aes(x = date, y = rate)) +
+rateorder <- c('DGS3MO','DGS1','DGS10','DGS30')
+rates$series_id <- factor(rates$series_id, levels = rateorder)
+p <- ggplot(rates, aes(x = date, y = value)) +
     geom_line() +
-    facet_wrap(~ symbol, ncol = 2) +
+    facet_wrap(~ series_id, ncol = 2) +
     ggtitle('Treasury rates, various maturities')
 
 ggplotly(p, tooltip = c('date', 'rate'))
@@ -170,8 +176,9 @@ kable(sumtbl(rates, symorder = rateorder))
 
 ### Data sources
 
-All data was retrieved using R's [tidyquant
-package](https://cran.r-project.org/package=tidyquant). The
+All data was retrieved using R's
+[tidyquant](https://cran.r-project.org/package=tidyquant) and
+[fredr](https://cran.r-project.org/package=fredr) packages. The
 underlying data sources were:
 
 * **Stock data** [Yahoo Finance](https://finance.yahoo.com/) 
