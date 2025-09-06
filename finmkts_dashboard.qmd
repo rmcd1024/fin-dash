@@ -58,6 +58,7 @@ library(tidyquant)
 stocks <- c('^GSPC', '^VIX', '^SP600', 'BTC-USD')
 currs <- c('DEXUSEU', 'DEXUSUK', 'DEXJPUS')
 treas <- c('3-month' = 'DGS3MO', '1-year' = 'DGS1', '10-year' = 'DGS10', '30-year' = 'DGS30')
+treasnames <- paste0(unname(treas), ' (', names(treas),  ')')
 
 if (getdata) {
     x <- tq_get(stocks, from = startdate) %>%
@@ -163,14 +164,19 @@ kable(sumtbl(xex))
 ## Interest rates
 
 ```{r plotrates, results='asis'}
-rateorder <- c('DGS3MO','DGS1','DGS10','DGS30')
-rates$series_id <- factor(rates$series_id, levels = rateorder)
+## In substitution, need to substitute on the full expression, else "DGS1" and "DGS10" get confused
+for (i in 1:length(treas))
+    rates$series_id <- gsub(paste0('^',treas[i], '$'), treasnames[i], rates$series_id)
+rateorder <- treasnames #c('DGS3MO','DGS1','DGS10','DGS30')
+rates$series_id <- factor(rates$series_id, levels = treasnames)
 p <- ggplot(rates, aes(x = date, y = value)) +
     geom_line() +
     facet_wrap(~ series_id, ncol = 2) +
     ggtitle('Treasury rates, various maturities')
 
+
 ggplotly(p, tooltip = c('date', 'rate'))
+
 kable(sumtbl(rates, symorder = rateorder))
 ```
 
