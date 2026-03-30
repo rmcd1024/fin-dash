@@ -131,11 +131,11 @@ tickerorder <- c('SP500', 'SP600', 'VIX', 'BTC-USD')
 x$symbol <- factor(x$symbol, levels = tickerorder)
 p = ggplot(x, aes(x = date, y = price)) +
     geom_line() +
-    scale_y_log10() + #limits = c(10, NA)) +
+#    scale_y_log10() + #limits = c(10, NA)) +
     facet_wrap(~ symbol, scales = 'free_y', ncol = 2
                ) +
     labs(caption = "Source: Yahoo, via R's tidyquant package") + 
-    ggtitle('Stock and crypto market data, log scale')
+    ggtitle('Stock and crypto market data')
 
 ggplotly(p, tooltip = c('date', 'price'))
 kable(sumtbl(x, symorder = tickerorder))
@@ -152,7 +152,7 @@ xex$series_id <- as.factor(xex$series_id)
 xex <- rename(xex, price = value)
 p <- ggplot(xex, aes(x = date, y = price)) +
     geom_line() +
-    scale_y_log10() +
+#    scale_y_log10() +
     facet_wrap(~ series_id, scales = 'free_y', ncol = 1) +
     ggtitle('Exchange rates, log scale' )
 
